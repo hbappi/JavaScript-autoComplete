@@ -1,0 +1,168 @@
+column:[
+{
+    title: "Test",
+        field: "test",
+            // editor: "autocomplete",
+            // editor: "list",
+            editor: (cell, onRendered, success, cancel, editorParams) => {
+                // Create an input element
+
+                let autocompleteEl = null;
+
+                let autoCompleteActive = false;
+
+
+                const container = document.createElement('div');
+                const input = document.createElement("input");
+                input.setAttribute('list', 'attrib-data-list');
+                input.setAttribute('name', 'attrib-data-list');
+                // input[name="attrib-data-list"]
+                input.setAttribute("type", "text");
+                input.style.width = "100%";
+                input.style.boxSizing = "border-box";
+
+
+                // Event listener for the input
+                input.addEventListener("keydown", function (e) {
+                    // Customize keyboard navigation behavior here
+
+                    // input.value = 's'
+                    console.log('event key: ', e.key);
+
+                    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                        // Handle Up and Down arrow keys as needed
+
+                        if (autoCompleteActive) {
+                            // debugger;
+                            // console.log(autocompleteEl);
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                        // Your custom logic here...
+                    }
+                });
+
+
+                //required....
+                input.addEventListener('blur', () => {
+                    // container.removeChild(suggestionEl);
+                    cancel();
+                    if (autocompleteEl) autocompleteEl.destroy();
+                    autocompleteEl = null;
+                    autoCompleteActive = false;
+                });
+                // required...
+
+
+
+
+
+
+                // Set the initial value and focus
+                input.value = (cell.getValue() || { label: '' }).label;
+
+                onRendered(function () {
+                    input.focus();
+
+
+                    autocompleteEl = new autoComplete({
+                        selector: 'input[name="attrib-data-list"]',
+                        minChars: 0,
+                        source: async function (term, suggest) {
+                            const filteredSuggestions = (await editorParams.valuesLookup(null, term));
+
+                            console.log('filtered suggestions : ', filteredSuggestions)
+
+                            suggest(filteredSuggestions);
+                        },
+                        renderItem: function (item, search) {
+                            autoCompleteActive = true;
+
+                            console.log('render item : ', item)
+
+                            search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&amp;');
+                            var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+                            return '<div class="autocomplete-suggestion" data-value="' + btoa(JSON.stringify(item.value)) + '">' + item.label.replace(re, "<b>$1</b>") + '</div>';
+                        },
+                        onSelect: function (e, term, item) {
+                            // debugger;
+                            const data = item.getAttribute('data-value');
+                            const jdata = JSON.parse(atob(data));
+
+                            console.log(JSON.stringify(jdata), 'Item "(' + data + ')" selected by ' + (e.type == 'keydown' ? 'pressing enter' : 'mouse click') + '.');
+                            input.value = jdata.label;
+
+                            success(jdata);
+                            if (autocompleteEl) autocompleteEl.destroy();
+                            autocompleteEl = null;
+                            autoCompleteActive = false;
+                            cell.edit();
+                        },
+                    });
+
+                });
+
+
+
+
+                container.appendChild(input);
+                // container.appendChild(suggestionEl);
+                return container;
+                return input;
+            },
+                editorParams: {
+        allowEmpty: false,
+            minimumInputLength: 1,
+                valuesLookup: async (cell, filterTerm) => {
+                    let data = [
+                        { value: { label: "Steve Boberson", key: 9898, data: 1001 }, label: "Steve Boberson" },
+                        { value: { label: "dev dtr", key: 5656, data: 1002 }, label: "dev dtr" },
+                        { value: { label: "John Doe", key: 1234, data: 1003 }, label: "John Doe" },
+                        { value: { label: "Jane Smith", key: 7890, data: 1004 }, label: "Jane Smith" },
+                        { value: { label: "Alice Johnson", key: 1111, data: 1005 }, label: "Alice Johnson" },
+                        { value: { label: "Bob Anderson", key: 2222, data: 1006 }, label: "Bob Anderson" },
+                        { value: { label: "Eva Williams", key: 3333, data: 1007 }, label: "Eva Williams" },
+                        { value: { label: "Charlie Brown", key: 4444, data: 1008 }, label: "Charlie Brown" },
+                        { value: { label: "Grace Davis", key: 5555, data: 1009 }, label: "Grace Davis" },
+                        { value: { label: "Henry Wilson", key: 6666, data: 1010 }, label: "Henry Wilson" },
+                        { value: { label: "Ivy Turner", key: 7777, data: 1011 }, label: "Ivy Turner" },
+                        { value: { label: "Frank Miller", key: 8888, data: 1012 }, label: "Frank Miller" },
+                    ];
+
+                    if (filterTerm === '') return [];
+
+                    console.log('valuesLookup', filterTerm)
+
+                    return await new Promise((res => {
+
+                        setTimeout(() => {
+
+                            data = data.filter(item => item.label.toLowerCase().includes(filterTerm.toLowerCase()));
+
+                            res(data);
+
+                        }, 1800);
+                    }));
+                },
+                    autocomplete: true, //enable autocomplete mode,
+                        filterFunc: function (term, label, value, item) { 
+                            console.log('filterfunc', term, label, value, item);
+
+                            return label.toLowerCase().includes(term.toLowerCase());
+                        },
+        filterRemote: true, //pass filter term to remote server in request instead of filtering
+            filterDelay: 100, //delay in milliseconds after typing before filter begins
+                allowEmpty: true, //allow the user to leave the cell empty
+                    listOnEmpty: true, //show all values in the list if the input is empty
+                        // mask: "AAA-999", //apply input mask to text entry
+                        freetext: true, //allow the user to set the value of the cell to a free text entry
+
+                    },
+    formatter: function (cell, formatterParams) {
+        console.log('formatter: ', formatterParams, cell);
+        return (cell.getValue() || { label: '' }).label;
+    },
+    cellEdited: function (cell) {
+        console.log("Cell edited:", cell.getData());
+    },
+}]
